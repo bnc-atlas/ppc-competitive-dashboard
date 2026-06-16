@@ -4,10 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PPC Competitive Dashboard</title>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" charset="utf-8"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -16,13 +13,11 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
       line-height: 1.5;
-      min-height: 100vh;
     }
     .app { max-width: 1020px; margin: 0 auto; padding: 36px 24px 60px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
     h1 { font-size: 20px; font-weight: 700; color: #f0f6fc; letter-spacing: -0.3px; }
-    h2 { font-size: 15px; font-weight: 600; color: #f0f6fc; }
-    .meta { font-size: 12px; color: #6e7681; margin-top: 2px; }
+    h2 { font-size: 15px; font-weight: 600; color: #f0f6fc; margin-bottom: 2px; }
+    .meta { font-size: 12px; color: #6e7681; margin-top: 3px; margin-bottom: 22px; }
     .tab-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
     .tab {
       padding: 5px 14px;
@@ -32,424 +27,340 @@
       color: #8b949e;
       font-size: 13px;
       cursor: pointer;
-      transition: border-color 0.12s, color 0.12s, background 0.12s;
+      transition: all 0.12s;
     }
     .tab:hover { border-color: #58a6ff; color: #58a6ff; }
     .tab.active { background: #1f6feb22; border-color: #1f6feb; color: #58a6ff; font-weight: 500; }
     .divider { border: none; border-top: 1px solid #21262d; margin-bottom: 24px; }
-    .section { display: flex; flex-direction: column; gap: 6px; }
-    .section + .section, .section + .divider { margin-top: 8px; }
-    .stack { display: flex; flex-direction: column; }
-    .note { font-size: 11px; color: #6e7681; margin-top: 2px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 4px; }
-    .stat {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      padding: 16px 18px;
-    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .section { margin-bottom: 32px; }
+    .note { font-size: 11px; color: #6e7681; margin-bottom: 6px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 16px 18px; }
     .stat-value { font-size: 26px; font-weight: 700; color: #f0f6fc; letter-spacing: -0.5px; }
     .stat-label { font-size: 11px; color: #8b949e; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
-    .table-wrap { border: 1px solid #21262d; border-radius: 8px; overflow: hidden; margin-top: 4px; }
+    .table-wrap { border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
     table { width: 100%; border-collapse: collapse; }
     thead tr { border-bottom: 1px solid #21262d; }
     th { padding: 9px 14px; font-size: 11px; font-weight: 500; color: #6e7681; text-align: left; text-transform: uppercase; letter-spacing: 0.4px; }
     th.r, td.r { text-align: right; }
     td { padding: 9px 14px; font-size: 13px; color: #c9d1d9; border-bottom: 1px solid #161b22; }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: #161b22; }
-    tbody tr.atl { background: #0d1b2a; }
-    tbody tr.atl td:first-child { font-weight: 600; color: #79c0ff; }
-    .chart-outer { margin-top: 4px; }
-    .footer { font-size: 11px; color: #484f58; margin-top: 32px; }
-    .gap-lg { gap: 28px; }
-    /* Recharts tooltip override */
-    .recharts-tooltip-wrapper { outline: none; }
+    tbody tr:hover td { background: #161b22; }
+    .atl { background: #0d1b2a !important; }
+    .atl td:first-child { font-weight: 600; color: #79c0ff; }
+    .footer { font-size: 11px; color: #484f58; margin-top: 40px; }
   </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState } = React;
-const {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  LineChart, Line, ResponsiveContainer, Cell
-} = Recharts;
+<div class="app">
+  <h1>PPC Competitive Dashboard</h1>
+  <p class="meta">Paid search competitive analysis &middot; Jul 2025 – May 2026</p>
 
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab(0)">Summary</button>
+    <button class="tab" onclick="switchTab(1)">Clicks &amp; CPC</button>
+    <button class="tab" onclick="switchTab(2)">Spend Share</button>
+    <button class="tab" onclick="switchTab(3)">Monthly Share</button>
+  </div>
+  <hr class="divider" />
+
+  <!-- Tab 0 -->
+  <div id="panel-0" class="tab-panel active">
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-value" id="stat-spend"></div><div class="stat-label">Total PPC Spend</div></div>
+      <div class="stat"><div class="stat-value" id="stat-clicks"></div><div class="stat-label">Total Paid Clicks</div></div>
+      <div class="stat"><div class="stat-value" id="stat-cpc"></div><div class="stat-label">Blended CPC</div></div>
+    </div>
+    <div class="section">
+      <h2>PPC Spend by Brand</h2>
+      <p class="note">Hover bars for exact values</p>
+      <div id="chart-spend"></div>
+    </div>
+    <div class="section">
+      <h2>Brand Breakdown</h2>
+      <div class="table-wrap" id="brand-table"></div>
+      <p class="note" style="margin-top:6px">Atlassian brands highlighted.</p>
+    </div>
+  </div>
+
+  <!-- Tab 1 -->
+  <div id="panel-1" class="tab-panel">
+    <div class="section">
+      <h2>Paid Clicks by Brand</h2>
+      <p class="note">Hover bars for exact values</p>
+      <div id="chart-clicks"></div>
+    </div>
+    <hr class="divider" />
+    <div class="section">
+      <h2>Cost Per Click (CPC) by Brand</h2>
+      <p class="note">USD &middot; hover bars for exact values</p>
+      <div id="chart-cpc"></div>
+    </div>
+  </div>
+
+  <!-- Tab 2 -->
+  <div id="panel-2" class="tab-panel">
+    <div class="section">
+      <h2>PPC Spend Share Over Time</h2>
+      <p class="note">% of total tracked spend &middot; hover to compare all brands &middot; 0% where data unavailable</p>
+      <div id="chart-line"></div>
+    </div>
+  </div>
+
+  <!-- Tab 3 -->
+  <div id="panel-3" class="tab-panel">
+    <div class="section">
+      <h2>Monthly Market Share by Competitor</h2>
+      <p class="note">% of total tracked PPC spend &middot; hover a month to compare all brands</p>
+      <div id="chart-mshare"></div>
+    </div>
+    <hr class="divider" />
+    <div class="section">
+      <h2>Estimated Monthly PPC Spend by Competitor</h2>
+      <p class="note">Estimated by distributing each brand's total proportionally via monthly share weights &middot; hover to compare</p>
+      <div id="chart-mspend"></div>
+    </div>
+  </div>
+
+  <p class="footer">Atlassian &middot; PFM &middot; Performance Marketing &middot; Internal use</p>
+</div>
+
+<script>
 /* ── Data ── */
-const KEYS = [
-  "atlassian.com/software/confluence",
-  "atlassian.com/software/jira",
-  "wrike.com","smartsheet.com","notion.so","clickup.com","asana.com","monday.com"
-];
 const NAME_MAP = {
   "atlassian.com/software/confluence": "Confluence",
-  "atlassian.com/software/jira": "Jira",
-  "wrike.com": "Wrike",
-  "smartsheet.com": "Smartsheet",
-  "notion.so": "Notion",
-  "clickup.com": "ClickUp",
-  "asana.com": "Asana",
-  "monday.com": "Monday.com",
+  "atlassian.com/software/jira":       "Jira",
+  "wrike.com":                          "Wrike",
+  "smartsheet.com":                     "Smartsheet",
+  "notion.so":                          "Notion",
+  "clickup.com":                        "ClickUp",
+  "asana.com":                          "Asana",
+  "monday.com":                         "Monday.com",
 };
+const KEYS = Object.keys(NAME_MAP);
+
 const COLORS = {
   "Confluence": "#3b82f6",
-  "Jira": "#93c5fd",
-  "Wrike": "#34d399",
+  "Jira":       "#93c5fd",
+  "Wrike":      "#34d399",
   "Smartsheet": "#a78bfa",
-  "Notion": "#fbbf24",
-  "ClickUp": "#f87171",
-  "Asana": "#fb923c",
+  "Notion":     "#fbbf24",
+  "ClickUp":    "#f87171",
+  "Asana":      "#fb923c",
   "Monday.com": "#e879f9",
 };
-const COLOR_LIST = KEYS.map(k => COLORS[NAME_MAP[k]]);
-const BRANDS = KEYS.map(k => NAME_MAP[k]);
 
 const RAW_DATA = [
-  { key:"atlassian.com/software/confluence", clicks:254145, cpc:1.63, spend:414783 },
-  { key:"atlassian.com/software/jira",       clicks:336618, cpc:4.21, spend:1417364 },
-  { key:"wrike.com",                          clicks:98710,  cpc:1.56, spend:154456 },
-  { key:"smartsheet.com",                     clicks:32890,  cpc:9.68, spend:318313 },
-  { key:"notion.so",                          clicks:2249,   cpc:10.24,spend:23030 },
-  { key:"clickup.com",                        clicks:1898868,cpc:1.37, spend:2603887 },
-  { key:"asana.com",                          clicks:469036, cpc:3.23, spend:1517290 },
-  { key:"monday.com",                         clicks:871870, cpc:5.33, spend:4648037 },
+  { key: "atlassian.com/software/confluence", clicks: 254145,  cpc: 1.63,  spend: 414783  },
+  { key: "atlassian.com/software/jira",       clicks: 336618,  cpc: 4.21,  spend: 1417364 },
+  { key: "wrike.com",                          clicks: 98710,   cpc: 1.56,  spend: 154456  },
+  { key: "smartsheet.com",                     clicks: 32890,   cpc: 9.68,  spend: 318313  },
+  { key: "notion.so",                          clicks: 2249,    cpc: 10.24, spend: 23030   },
+  { key: "clickup.com",                        clicks: 1898868, cpc: 1.37,  spend: 2603887 },
+  { key: "asana.com",                          clicks: 469036,  cpc: 3.23,  spend: 1517290 },
+  { key: "monday.com",                         clicks: 871870,  cpc: 5.33,  spend: 4648037 },
 ];
 
-const MONTHS = [
-  "Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25",
-  "Jan '26","Feb '26","Mar '26","Apr '26","May '26"
-];
+const MONTHS = ["Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25",
+                "Jan '26","Feb '26","Mar '26","Apr '26","May '26"];
 
 const SPEND_SHARE_PCT = {
-  "atlassian.com/software/confluence": [2.14,1.99,2.19,2.17,3.58,3.11,2.77,3.90,4.29,4.44,3.74],
-  "atlassian.com/software/jira":       [11.32,9.60,11.91,12.10,8.85,7.88,7.75,13.84,12.87,13.56,12.77],
-  "wrike.com":                         [3.80,4.62,3.77,3.15,3.97,4.50,1.99,2.92,1.81,1.01,1.39],
-  "smartsheet.com":                    [1.56,1.64,1.42,1.62,1.65,0.85,1.03,2.48,2.46,3.75,2.87],
-  "notion.so":                         [0.08,0.10,3.83,0.42,0.29,0.05,null,null,0.01,0.68,0.21],
+  "atlassian.com/software/confluence": [2.14, 1.99, 2.19, 2.17, 3.58, 3.11, 2.77, 3.90, 4.29, 4.44, 3.74],
+  "atlassian.com/software/jira":       [11.32,9.60, 11.91,12.10,8.85, 7.88, 7.75, 13.84,12.87,13.56,12.77],
+  "wrike.com":                         [3.80, 4.62, 3.77, 3.15, 3.97, 4.50, 1.99, 2.92, 1.81, 1.01, 1.39],
+  "smartsheet.com":                    [1.56, 1.64, 1.42, 1.62, 1.65, 0.85, 1.03, 2.48, 2.46, 3.75, 2.87],
+  "notion.so":                         [0.08, 0.10, 3.83, 0.42, 0.29, 0.05, 0,    0,    0.01, 0.68, 0.21],
   "clickup.com":                       [19.99,25.87,22.47,21.04,21.69,33.78,35.31,21.14,23.52,29.35,23.46],
-  "asana.com":                         [18.14,12.58,9.70,11.29,12.10,14.07,16.80,16.47,16.26,12.46,13.67],
+  "asana.com":                         [18.14,12.58,9.70, 11.29,12.10,14.07,16.80,16.47,16.26,12.46,13.67],
   "monday.com":                        [42.97,43.60,44.71,48.20,47.87,35.76,34.35,39.26,38.77,34.75,41.89],
 };
 
 function estimateMonthlySpend() {
-  const result = {};
+  const out = {};
   for (const d of RAW_DATA) {
-    const shares = SPEND_SHARE_PCT[d.key].map(v => v === null ? 0 : v);
-    const shareSum = shares.reduce((a, b) => a + b, 0);
-    result[d.key] = shares.map(s => shareSum > 0 ? Math.round((s / shareSum) * d.spend) : 0);
+    const shares = SPEND_SHARE_PCT[d.key];
+    const total = shares.reduce((a, b) => a + b, 0);
+    out[d.key] = shares.map(s => total > 0 ? Math.round((s / total) * d.spend) : 0);
   }
-  return result;
+  return out;
 }
 
 /* ── Formatters ── */
 function fmtMoney(n) {
-  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
-  if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(0) + 'K';
   return '$' + Math.round(n);
 }
 function fmtNum(n) {
-  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
-  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'K';
   return n.toLocaleString();
 }
 
-/* ── Shared tooltip styles ── */
-const ttStyle = {
-  background: '#161b22', border: '1px solid #30363d', borderRadius: 6,
-  padding: '10px 14px', fontSize: 12, color: '#c9d1d9'
+/* ── Shared Plotly config ── */
+const CFG = { displayModeBar: false, responsive: true };
+const BASE = {
+  paper_bgcolor: '#0d1117',
+  plot_bgcolor:  '#0d1117',
+  font: { color: '#c9d1d9', size: 11.5, family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" },
 };
+function axis(extra) {
+  return { gridcolor: '#21262d', zerolinecolor: '#30363d', linecolor: '#21262d', ...extra };
+}
+const LEGEND_H = { orientation: 'h', y: -0.22, font: { size: 11 }, bgcolor: 'transparent' };
 
-function MoneyTooltip({ active, payload, label }) {
-  if (!active || !payload || !payload.length) return null;
-  const sorted = [...payload].sort((a,b) => b.value - a.value);
-  return (
-    <div style={ttStyle}>
-      <div style={{fontWeight:600,marginBottom:6,color:'#f0f6fc'}}>{label}</div>
-      {sorted.map(p => (
-        <div key={p.name} style={{display:'flex',justifyContent:'space-between',gap:16,marginBottom:2}}>
-          <span style={{color:p.fill||p.color}}>{p.name}</span>
-          <span style={{color:'#f0f6fc',fontWeight:500}}>{fmtMoney(p.value)}</span>
-        </div>
-      ))}
-    </div>
-  );
+/* ── Summary ── */
+function renderSummary() {
+  const totalSpend  = RAW_DATA.reduce((s, d) => s + d.spend,  0);
+  const totalClicks = RAW_DATA.reduce((s, d) => s + d.clicks, 0);
+  document.getElementById('stat-spend').textContent  = fmtMoney(totalSpend);
+  document.getElementById('stat-clicks').textContent = fmtNum(totalClicks);
+  document.getElementById('stat-cpc').textContent    = '$' + (totalSpend / totalClicks).toFixed(2);
+
+  const asc = [...RAW_DATA].sort((a, b) => a.spend - b.spend);
+  Plotly.newPlot('chart-spend', [{
+    type: 'bar', orientation: 'h',
+    x: asc.map(d => d.spend),
+    y: asc.map(d => NAME_MAP[d.key]),
+    marker: { color: asc.map(d => COLORS[NAME_MAP[d.key]]) },
+    hovertemplate: '<b>%{y}</b><br>$%{x:,.0f}<extra></extra>',
+  }], {
+    ...BASE,
+    height: 280,
+    margin: { l: 100, r: 20, t: 8, b: 40 },
+    xaxis: axis({ tickformat: '$,.3s' }),
+    yaxis: axis({ automargin: true }),
+  }, CFG);
+
+  const desc = [...RAW_DATA].sort((a, b) => b.spend - a.spend);
+  document.getElementById('brand-table').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Brand</th><th class="r">Paid Clicks</th>
+        <th class="r">CPC</th><th class="r">PPC Spend</th><th class="r">Share</th>
+      </tr></thead>
+      <tbody>
+        ${desc.map(d => `<tr class="${d.key.includes('atlassian') ? 'atl' : ''}">
+          <td>${NAME_MAP[d.key]}</td>
+          <td class="r">${fmtNum(d.clicks)}</td>
+          <td class="r">$${d.cpc.toFixed(2)}</td>
+          <td class="r">${fmtMoney(d.spend)}</td>
+          <td class="r" style="color:#6e7681">${((d.spend / totalSpend) * 100).toFixed(1)}%</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
-function PctTooltip({ active, payload, label }) {
-  if (!active || !payload || !payload.length) return null;
-  const sorted = [...payload].sort((a,b) => b.value - a.value);
-  return (
-    <div style={ttStyle}>
-      <div style={{fontWeight:600,marginBottom:6,color:'#f0f6fc'}}>{label}</div>
-      {sorted.map(p => (
-        <div key={p.name} style={{display:'flex',justifyContent:'space-between',gap:16,marginBottom:2}}>
-          <span style={{color:p.fill||p.color||p.stroke}}>{p.name}</span>
-          <span style={{color:'#f0f6fc',fontWeight:500}}>{Number(p.value).toFixed(1)}%</span>
-        </div>
-      ))}
-    </div>
-  );
+/* ── Clicks & CPC ── */
+function renderClicksCPC() {
+  const byClicks = [...RAW_DATA].sort((a, b) => a.clicks - b.clicks);
+  Plotly.newPlot('chart-clicks', [{
+    type: 'bar', orientation: 'h',
+    x: byClicks.map(d => d.clicks),
+    y: byClicks.map(d => NAME_MAP[d.key]),
+    marker: { color: byClicks.map(d => COLORS[NAME_MAP[d.key]]) },
+    hovertemplate: '<b>%{y}</b><br>%{x:,.0f} clicks<extra></extra>',
+  }], {
+    ...BASE,
+    height: 270,
+    margin: { l: 100, r: 20, t: 8, b: 40 },
+    xaxis: axis({ tickformat: ',.3s' }),
+    yaxis: axis({ automargin: true }),
+  }, CFG);
+
+  const byCPC = [...RAW_DATA].sort((a, b) => a.cpc - b.cpc);
+  Plotly.newPlot('chart-cpc', [{
+    type: 'bar', orientation: 'h',
+    x: byCPC.map(d => d.cpc),
+    y: byCPC.map(d => NAME_MAP[d.key]),
+    marker: { color: byCPC.map(d => COLORS[NAME_MAP[d.key]]) },
+    hovertemplate: '<b>%{y}</b><br>$%{x:.2f} CPC<extra></extra>',
+  }], {
+    ...BASE,
+    height: 270,
+    margin: { l: 100, r: 20, t: 8, b: 40 },
+    xaxis: axis({ tickprefix: '$', tickformat: '.2f' }),
+    yaxis: axis({ automargin: true }),
+  }, CFG);
 }
 
-function GenTooltip({ active, payload, label, fmt }) {
-  if (!active || !payload || !payload.length) return null;
-  return (
-    <div style={ttStyle}>
-      <div style={{fontWeight:600,marginBottom:6,color:'#f0f6fc'}}>{label}</div>
-      {payload.map(p => (
-        <div key={p.name} style={{display:'flex',justifyContent:'space-between',gap:16,marginBottom:2}}>
-          <span style={{color:p.fill||p.color}}>{p.name}</span>
-          <span style={{color:'#f0f6fc',fontWeight:500}}>{fmt ? fmt(p.value) : p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
+/* ── Spend Share Line ── */
+function renderSpendShare() {
+  const traces = KEYS.map(k => ({
+    type: 'scatter', mode: 'lines+markers',
+    name: NAME_MAP[k],
+    x: MONTHS,
+    y: SPEND_SHARE_PCT[k],
+    line:   { color: COLORS[NAME_MAP[k]], width: 2 },
+    marker: { size: 5 },
+    hovertemplate: NAME_MAP[k] + ': %{y:.1f}%<extra></extra>',
+  }));
+
+  Plotly.newPlot('chart-line', traces, {
+    ...BASE,
+    height: 420,
+    margin: { l: 48, r: 20, t: 8, b: 100 },
+    xaxis: axis({ tickangle: -35 }),
+    yaxis: axis({ ticksuffix: '%' }),
+    hovermode: 'x unified',
+    legend: LEGEND_H,
+  }, CFG);
 }
 
-const axisStyle = { fill: '#6e7681', fontSize: 11 };
-const gridStyle = { stroke: '#21262d' };
+/* ── Monthly Share ── */
+function renderMonthly() {
+  const shareSeries = KEYS.map(k => ({
+    type: 'bar', name: NAME_MAP[k],
+    x: MONTHS, y: SPEND_SHARE_PCT[k],
+    marker: { color: COLORS[NAME_MAP[k]] },
+    hovertemplate: NAME_MAP[k] + ': %{y:.1f}%<extra></extra>',
+  }));
 
-/* ── Tabs ── */
-function SummaryTab() {
-  const totalSpend = RAW_DATA.reduce((s,d) => s+d.spend, 0);
-  const totalClicks = RAW_DATA.reduce((s,d) => s+d.clicks, 0);
-  const blendedCPC = totalSpend / totalClicks;
-  const sorted = [...RAW_DATA].sort((a,b) => b.spend-a.spend);
-  const hBarData = sorted.map(d => ({ name: NAME_MAP[d.key], value: d.spend, fill: COLORS[NAME_MAP[d.key]] }));
-
-  return (
-    <div className="stack" style={{gap:28}}>
-      <div className="stats-grid">
-        <div className="stat"><div className="stat-value">{fmtMoney(totalSpend)}</div><div className="stat-label">Total PPC Spend</div></div>
-        <div className="stat"><div className="stat-value">{fmtNum(totalClicks)}</div><div className="stat-label">Total Paid Clicks</div></div>
-        <div className="stat"><div className="stat-value">${blendedCPC.toFixed(2)}</div><div className="stat-label">Blended CPC</div></div>
-      </div>
-
-      <div className="section">
-        <h2>PPC Spend by Brand</h2>
-        <p className="note">Hover bars for exact values</p>
-        <div className="chart-outer">
-          <ResponsiveContainer width="100%" height={290}>
-            <BarChart layout="vertical" data={hBarData} margin={{top:4,right:24,bottom:4,left:8}}>
-              <CartesianGrid horizontal={false} stroke={gridStyle.stroke} />
-              <XAxis type="number" tick={axisStyle} tickFormatter={fmtMoney} />
-              <YAxis type="category" dataKey="name" width={88} tick={axisStyle} />
-              <Tooltip content={<GenTooltip fmt={fmtMoney} />} cursor={{fill:'#ffffff08'}} />
-              <Bar dataKey="value" name="PPC Spend" radius={[0,3,3,0]}>
-                {hBarData.map((d,i) => <Cell key={i} fill={d.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="section">
-        <h2>Brand Breakdown</h2>
-        <div className="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Brand</th>
-              <th className="r">Paid Clicks</th>
-              <th className="r">CPC</th>
-              <th className="r">PPC Spend</th>
-              <th className="r">Share</th>
-            </tr></thead>
-            <tbody>
-              {sorted.map(d => {
-                const pct = ((d.spend/totalSpend)*100).toFixed(1);
-                const isAtl = d.key.includes('atlassian');
-                return (
-                  <tr key={d.key} className={isAtl ? 'atl' : ''}>
-                    <td>{NAME_MAP[d.key]}</td>
-                    <td className="r">{fmtNum(d.clicks)}</td>
-                    <td className="r">${d.cpc.toFixed(2)}</td>
-                    <td className="r">{fmtMoney(d.spend)}</td>
-                    <td className="r" style={{color:'#6e7681'}}>{pct}%</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="note">Atlassian brands highlighted in blue.</p>
-      </div>
-    </div>
-  );
-}
-
-function ClicksCPCTab() {
-  const byClicks = [...RAW_DATA].sort((a,b) => b.clicks-a.clicks).map(d => ({ name: NAME_MAP[d.key], value: d.clicks, fill: COLORS[NAME_MAP[d.key]] }));
-  const byCPC    = [...RAW_DATA].sort((a,b) => b.cpc-a.cpc).map(d => ({ name: NAME_MAP[d.key], value: d.cpc, fill: COLORS[NAME_MAP[d.key]] }));
-
-  return (
-    <div className="stack" style={{gap:32}}>
-      <div className="section">
-        <h2>Paid Clicks by Brand</h2>
-        <p className="note">Hover bars for exact values</p>
-        <div className="chart-outer">
-          <ResponsiveContainer width="100%" height={270}>
-            <BarChart layout="vertical" data={byClicks} margin={{top:4,right:24,bottom:4,left:8}}>
-              <CartesianGrid horizontal={false} stroke={gridStyle.stroke} />
-              <XAxis type="number" tick={axisStyle} tickFormatter={fmtNum} />
-              <YAxis type="category" dataKey="name" width={88} tick={axisStyle} />
-              <Tooltip content={<GenTooltip fmt={fmtNum} />} cursor={{fill:'#ffffff08'}} />
-              <Bar dataKey="value" name="Paid Clicks" radius={[0,3,3,0]}>
-                {byClicks.map((d,i) => <Cell key={i} fill={d.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <hr className="divider" />
-
-      <div className="section">
-        <h2>Cost Per Click (CPC) by Brand</h2>
-        <p className="note">USD · hover bars for exact values</p>
-        <div className="chart-outer">
-          <ResponsiveContainer width="100%" height={270}>
-            <BarChart layout="vertical" data={byCPC} margin={{top:4,right:24,bottom:4,left:8}}>
-              <CartesianGrid horizontal={false} stroke={gridStyle.stroke} />
-              <XAxis type="number" tick={axisStyle} tickFormatter={v => '$'+v.toFixed(2)} />
-              <YAxis type="category" dataKey="name" width={88} tick={axisStyle} />
-              <Tooltip content={<GenTooltip fmt={v => '$'+Number(v).toFixed(2)} />} cursor={{fill:'#ffffff08'}} />
-              <Bar dataKey="value" name="CPC (USD)" radius={[0,3,3,0]}>
-                {byCPC.map((d,i) => <Cell key={i} fill={d.fill} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SpendShareTab() {
-  const lineData = MONTHS.map((month, mi) => {
-    const obj = { month };
-    KEYS.forEach(k => { obj[NAME_MAP[k]] = SPEND_SHARE_PCT[k][mi] ?? 0; });
-    return obj;
-  });
-
-  return (
-    <div className="section">
-      <h2>PPC Spend Share Over Time</h2>
-      <p className="note">% of total tracked spend · hover to compare all brands · 0% where data unavailable</p>
-      <div className="chart-outer">
-        <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={lineData} margin={{top:8,right:24,bottom:4,left:0}}>
-            <CartesianGrid stroke={gridStyle.stroke} />
-            <XAxis dataKey="month" tick={axisStyle} />
-            <YAxis tick={axisStyle} tickFormatter={v => v+'%'} />
-            <Tooltip content={<PctTooltip />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{fontSize:12,paddingTop:12}} />
-            {KEYS.map(k => (
-              <Line
-                key={k}
-                type="monotone"
-                dataKey={NAME_MAP[k]}
-                stroke={COLORS[NAME_MAP[k]]}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{r:4}}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <p className="note">Source: Paid search · Jul 2025 – May 2026</p>
-    </div>
-  );
-}
-
-function MonthlyShareTab() {
-  const shareData = MONTHS.map((month, mi) => {
-    const obj = { month };
-    KEYS.forEach(k => { obj[NAME_MAP[k]] = SPEND_SHARE_PCT[k][mi] ?? 0; });
-    return obj;
-  });
+  Plotly.newPlot('chart-mshare', shareSeries, {
+    ...BASE,
+    barmode: 'stack',
+    height: 380,
+    margin: { l: 48, r: 20, t: 8, b: 100 },
+    xaxis: axis({ tickangle: -35 }),
+    yaxis: axis({ ticksuffix: '%', range: [0, 101] }),
+    hovermode: 'x unified',
+    legend: LEGEND_H,
+  }, CFG);
 
   const monthly = estimateMonthlySpend();
-  const spendData = MONTHS.map((month, mi) => {
-    const obj = { month };
-    KEYS.forEach(k => { obj[NAME_MAP[k]] = monthly[k][mi]; });
-    return obj;
-  });
+  const spendSeries = KEYS.map(k => ({
+    type: 'bar', name: NAME_MAP[k],
+    x: MONTHS, y: monthly[k],
+    marker: { color: COLORS[NAME_MAP[k]] },
+    hovertemplate: NAME_MAP[k] + ': $%{y:,.0f}<extra></extra>',
+  }));
 
-  return (
-    <div className="stack" style={{gap:32}}>
-      <div className="section">
-        <h2>Monthly Market Share by Competitor</h2>
-        <p className="note">% of total tracked PPC spend · hover a month to compare all brands</p>
-        <div className="chart-outer">
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart data={shareData} margin={{top:8,right:24,bottom:4,left:0}}>
-              <CartesianGrid vertical={false} stroke={gridStyle.stroke} />
-              <XAxis dataKey="month" tick={axisStyle} />
-              <YAxis tick={axisStyle} tickFormatter={v => v+'%'} />
-              <Tooltip content={<PctTooltip />} cursor={{fill:'#ffffff06'}} />
-              <Legend iconType="square" iconSize={8} wrapperStyle={{fontSize:12,paddingTop:12}} />
-              {KEYS.map(k => (
-                <Bar key={k} dataKey={NAME_MAP[k]} stackId="a" fill={COLORS[NAME_MAP[k]]} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <hr className="divider" />
-
-      <div className="section">
-        <h2>Estimated Monthly PPC Spend by Competitor</h2>
-        <p className="note">Dollar spend estimated by distributing each brand's total proportionally across months using share weights · hover to compare</p>
-        <div className="chart-outer">
-          <ResponsiveContainer width="100%" height={360}>
-            <BarChart data={spendData} margin={{top:8,right:24,bottom:4,left:0}}>
-              <CartesianGrid vertical={false} stroke={gridStyle.stroke} />
-              <XAxis dataKey="month" tick={axisStyle} />
-              <YAxis tick={axisStyle} tickFormatter={fmtMoney} />
-              <Tooltip content={<MoneyTooltip />} cursor={{fill:'#ffffff06'}} />
-              <Legend iconType="square" iconSize={8} wrapperStyle={{fontSize:12,paddingTop:12}} />
-              {KEYS.map(k => (
-                <Bar key={k} dataKey={NAME_MAP[k]} stackId="b" fill={COLORS[NAME_MAP[k]]} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="note">Source: Paid search · Jul 2025 – May 2026</p>
-      </div>
-    </div>
-  );
+  Plotly.newPlot('chart-mspend', spendSeries, {
+    ...BASE,
+    barmode: 'stack',
+    height: 380,
+    margin: { l: 58, r: 20, t: 8, b: 100 },
+    xaxis: axis({ tickangle: -35 }),
+    yaxis: axis({ tickformat: '$,.3s' }),
+    hovermode: 'x unified',
+    showlegend: false,
+  }, CFG);
 }
 
-function App() {
-  const [tab, setTab] = useState(0);
-  const tabs = ["Summary", "Clicks & CPC", "Spend Share", "Monthly Share"];
-  return (
-    <div className="app">
-      <div className="header">
-        <div>
-          <h1>PPC Competitive Dashboard</h1>
-          <p className="meta">Paid search competitive analysis · Jul 2025 – May 2026</p>
-        </div>
-      </div>
-      <div className="tab-bar">
-        {tabs.map((t,i) => (
-          <button key={t} className={`tab${tab===i?' active':''}`} onClick={() => setTab(i)}>{t}</button>
-        ))}
-      </div>
-      <hr className="divider" />
-      {tab === 0 && <SummaryTab />}
-      {tab === 1 && <ClicksCPCTab />}
-      {tab === 2 && <SpendShareTab />}
-      {tab === 3 && <MonthlyShareTab />}
-      <p className="footer">Atlassian · PFM · Performance Marketing · Internal use</p>
-    </div>
-  );
+/* ── Tab switching ── */
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
+  document.querySelectorAll('.tab-panel').forEach((p, idx) => p.classList.toggle('active', idx === i));
+  window.dispatchEvent(new Event('resize'));
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+/* ── Init ── */
+renderSummary();
+renderClicksCPC();
+renderSpendShare();
+renderMonthly();
 </script>
 </body>
 </html>
