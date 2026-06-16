@@ -14,7 +14,7 @@
       font-size: 14px;
       line-height: 1.5;
     }
-    .app { max-width: 1020px; margin: 0 auto; padding: 36px 24px 60px; }
+    .app { max-width: 1060px; margin: 0 auto; padding: 36px 24px 60px; }
     h1 { font-size: 20px; font-weight: 700; color: #f0f6fc; letter-spacing: -0.3px; }
     h2 { font-size: 15px; font-weight: 600; color: #f0f6fc; margin-bottom: 2px; }
     .meta { font-size: 12px; color: #6e7681; margin-top: 3px; margin-bottom: 22px; }
@@ -56,7 +56,7 @@
 <body>
 <div class="app">
   <h1>PPC Competitive Dashboard</h1>
-  <p class="meta">Paid search competitive analysis &middot; Jul 2025 – May 2026</p>
+  <p class="meta">Paid search competitive analysis &middot; Worldwide &middot; Jul 2025 – May 2026</p>
 
   <div class="tab-bar">
     <button class="tab active" onclick="switchTab(0)">Summary</button>
@@ -66,7 +66,7 @@
   </div>
   <hr class="divider" />
 
-  <!-- Tab 0 -->
+  <!-- Tab 0: Summary -->
   <div id="panel-0" class="tab-panel active">
     <div class="stats-grid">
       <div class="stat"><div class="stat-value" id="stat-spend"></div><div class="stat-label">Total PPC Spend</div></div>
@@ -74,42 +74,42 @@
       <div class="stat"><div class="stat-value" id="stat-cpc"></div><div class="stat-label">Blended CPC</div></div>
     </div>
     <div class="section">
-      <h2>PPC Spend by Brand</h2>
-      <p class="note">Hover bars for exact values</p>
+      <h2>Total PPC Spend by Brand</h2>
+      <p class="note">Period total Jul 2025 – May 2026 &middot; hover bars for exact values</p>
       <div id="chart-spend"></div>
     </div>
     <div class="section">
       <h2>Brand Breakdown</h2>
       <div class="table-wrap" id="brand-table"></div>
-      <p class="note" style="margin-top:6px">Atlassian brands highlighted.</p>
+      <p class="note" style="margin-top:6px">Atlassian brands highlighted. Period totals.</p>
     </div>
   </div>
 
-  <!-- Tab 1 -->
+  <!-- Tab 1: Clicks & CPC -->
   <div id="panel-1" class="tab-panel">
     <div class="section">
       <h2>Paid Clicks by Brand</h2>
-      <p class="note">Hover bars for exact values</p>
+      <p class="note">Period total &middot; hover bars for exact values</p>
       <div id="chart-clicks"></div>
     </div>
     <hr class="divider" />
     <div class="section">
       <h2>Cost Per Click (CPC) by Brand</h2>
-      <p class="note">USD &middot; hover bars for exact values</p>
+      <p class="note">Blended over period &middot; USD &middot; hover bars for exact values</p>
       <div id="chart-cpc"></div>
     </div>
   </div>
 
-  <!-- Tab 2 -->
+  <!-- Tab 2: Spend Share -->
   <div id="panel-2" class="tab-panel">
     <div class="section">
       <h2>PPC Spend Share Over Time</h2>
-      <p class="note">% of total tracked spend &middot; hover to compare all brands &middot; 0% where data unavailable</p>
+      <p class="note">% of total tracked spend &middot; hover to compare all brands</p>
       <div id="chart-line"></div>
     </div>
   </div>
 
-  <!-- Tab 3 -->
+  <!-- Tab 3: Monthly Share -->
   <div id="panel-3" class="tab-panel">
     <div class="section">
       <h2>Monthly Market Share by Competitor</h2>
@@ -118,8 +118,8 @@
     </div>
     <hr class="divider" />
     <div class="section">
-      <h2>Estimated Monthly PPC Spend by Competitor</h2>
-      <p class="note">Estimated by distributing each brand's total proportionally via monthly share weights &middot; hover to compare</p>
+      <h2>Monthly PPC Spend by Competitor</h2>
+      <p class="note">Actual monthly spend (USD) &middot; hover to compare</p>
       <div id="chart-mspend"></div>
     </div>
   </div>
@@ -128,18 +128,8 @@
 </div>
 
 <script>
-/* ── Data ── */
-const NAME_MAP = {
-  "atlassian.com/software/confluence": "Confluence",
-  "atlassian.com/software/jira":       "Jira",
-  "wrike.com":                          "Wrike",
-  "smartsheet.com":                     "Smartsheet",
-  "notion.so":                          "Notion",
-  "clickup.com":                        "ClickUp",
-  "asana.com":                          "Asana",
-  "monday.com":                         "Monday.com",
-};
-const KEYS = Object.keys(NAME_MAP);
+/* ── Brands ── */
+const BRANDS = ["Confluence","Jira","Wrike","Smartsheet","Notion","ClickUp","Asana","Monday.com"];
 
 const COLORS = {
   "Confluence": "#3b82f6",
@@ -152,39 +142,65 @@ const COLORS = {
   "Monday.com": "#e879f9",
 };
 
-const RAW_DATA = [
-  { key: "atlassian.com/software/confluence", clicks: 254145,  cpc: 1.63,  spend: 414783  },
-  { key: "atlassian.com/software/jira",       clicks: 336618,  cpc: 4.21,  spend: 1417364 },
-  { key: "wrike.com",                          clicks: 98710,   cpc: 1.56,  spend: 154456  },
-  { key: "smartsheet.com",                     clicks: 32890,   cpc: 9.68,  spend: 318313  },
-  { key: "notion.so",                          clicks: 2249,    cpc: 10.24, spend: 23030   },
-  { key: "clickup.com",                        clicks: 1898868, cpc: 1.37,  spend: 2603887 },
-  { key: "asana.com",                          clicks: 469036,  cpc: 3.23,  spend: 1517290 },
-  { key: "monday.com",                         clicks: 871870,  cpc: 5.33,  spend: 4648037 },
-];
-
 const MONTHS = ["Jul '25","Aug '25","Sep '25","Oct '25","Nov '25","Dec '25",
                 "Jan '26","Feb '26","Mar '26","Apr '26","May '26"];
 
-const SPEND_SHARE_PCT = {
-  "atlassian.com/software/confluence": [2.14, 1.99, 2.19, 2.17, 3.58, 3.11, 2.77, 3.90, 4.29, 4.44, 3.74],
-  "atlassian.com/software/jira":       [11.32,9.60, 11.91,12.10,8.85, 7.88, 7.75, 13.84,12.87,13.56,12.77],
-  "wrike.com":                         [3.80, 4.62, 3.77, 3.15, 3.97, 4.50, 1.99, 2.92, 1.81, 1.01, 1.39],
-  "smartsheet.com":                    [1.56, 1.64, 1.42, 1.62, 1.65, 0.85, 1.03, 2.48, 2.46, 3.75, 2.87],
-  "notion.so":                         [0.08, 0.10, 3.83, 0.42, 0.29, 0.05, 0,    0,    0.01, 0.68, 0.21],
-  "clickup.com":                       [19.99,25.87,22.47,21.04,21.69,33.78,35.31,21.14,23.52,29.35,23.46],
-  "asana.com":                         [18.14,12.58,9.70, 11.29,12.10,14.07,16.80,16.47,16.26,12.46,13.67],
-  "monday.com":                        [42.97,43.60,44.71,48.20,47.87,35.76,34.35,39.26,38.77,34.75,41.89],
+/* ── Monthly PPC Spend (USD) ── */
+const MONTHLY_SPEND = {
+  "Confluence": [240034,228054,252853,258661,336956,269610,293212,330164,360844,474085,414783],
+  "Jira":       [1272120,1097108,1373178,1441535,832369,682895,819316,1171315,1083401,1448883,1417364],
+  "Wrike":      [427435,527725,435080,374699,373356,389994,210507,246908,152166,108148,154456],
+  "Smartsheet": [175213,187261,163788,192931,155538,74046,109374,210215,207448,400515,318313],
+  "Notion":     [79284,46320,135355,757022,77199,57495,124115,84828,70650,98614,228344],
+  "ClickUp":    [2245230,2957426,2590419,2506152,2039627,2928252,3735397,1788848,1980206,3134431,2603887],
+  "Asana":      [2037615,1438480,1118078,1344567,1137966,1219446,1777178,1393646,1369061,1331336,1517290],
+  "Monday.com": [4827314,4983797,5155316,5741435,4502094,3100243,3633127,3322805,3263721,3711382,4648037],
 };
 
-function estimateMonthlySpend() {
-  const out = {};
-  for (const d of RAW_DATA) {
-    const shares = SPEND_SHARE_PCT[d.key];
-    const total = shares.reduce((a, b) => a + b, 0);
-    out[d.key] = shares.map(s => total > 0 ? Math.round((s / total) * d.spend) : 0);
-  }
-  return out;
+/* ── Monthly Spend Share (%) ── */
+const SPEND_SHARE_PCT = {
+  "Confluence": [2.1,2.0,2.3,2.1,3.6,3.1,2.7,3.9,4.3,4.4,3.7],
+  "Jira":       [11.3,9.6,12.2,11.4,8.8,7.8,7.6,13.7,12.8,13.5,12.5],
+  "Wrike":      [3.8,4.6,3.9,3.0,4.0,4.5,2.0,2.9,1.8,1.0,1.4],
+  "Smartsheet": [1.6,1.6,1.5,1.5,1.6,0.9,1.0,2.5,2.4,3.7,2.8],
+  "Notion":     [0.7,0.4,1.2,6.0,0.8,0.7,1.2,1.0,0.8,0.9,2.0],
+  "ClickUp":    [19.9,25.8,23.1,19.9,21.6,33.6,34.9,20.9,23.3,29.3,23.0],
+  "Asana":      [18.0,12.6,10.0,10.7,12.0,14.0,16.6,16.3,16.1,12.4,13.4],
+  "Monday.com": [42.7,43.5,45.9,45.5,47.6,35.6,34.0,38.9,38.5,34.6,41.1],
+};
+
+/* ── Monthly Total Clicks ── */
+const TOTAL_CLICKS = {
+  "Confluence": [522580,513555,433436,462719,508697,423551,513823,506782,474410,434058,389674],
+  "Jira":       [945868,892114,837725,931499,822060,724954,797259,847602,893623,851476,770294],
+  "Wrike":      [228854,230535,228597,202677,180571,159392,181050,185010,497184,319407,216375],
+  "Smartsheet": [914322,893080,888482,1003339,896644,850964,1075220,958910,1010158,923402,792531],
+  "Notion":     [11985087,12539855,11429471,11459308,9887123,10283490,12123645,10143079,11201555,10363006,9940483],
+  "ClickUp":    [3923766,3684368,3512848,3607975,3269217,3388929,3827605,3241230,3038229,2808128,2908805],
+  "Asana":      [2304279,2042999,2001364,2513688,1940954,1648492,1860079,1763955,1837125,1886362,1816559],
+  "Monday.com": [1864031,1951130,1835514,2133548,1905809,1717927,1964088,1691812,1597913,1451140,1364215],
+};
+
+/* ── Monthly Paid Clicks Share (fraction) ── */
+const PAID_SHARE = {
+  "Confluence": [0.6413,0.6552,0.6173,0.6496,0.7218,0.6937,0.7409,0.7234,0.6733,0.6857,0.6522],
+  "Jira":       [0.4304,0.4312,0.4129,0.4360,0.5058,0.4705,0.4810,0.4736,0.4775,0.5010,0.4370],
+  "Wrike":      [0.2414,0.2595,0.3243,0.2271,0.2856,0.3365,0.3452,0.3158,0.7241,0.6267,0.4562],
+  "Smartsheet": [0.0199,0.0218,0.0224,0.0224,0.0266,0.0230,0.0240,0.0332,0.0377,0.0394,0.0415],
+  "Notion":     [0.0031,0.0028,0.0058,0.0343,0.0173,0.0058,0.0087,0.0111,0.0111,0.0118,0.0168],
+  "ClickUp":    [0.5066,0.5173,0.5378,0.5291,0.5589,0.5744,0.6025,0.6223,0.6106,0.6229,0.6528],
+  "Asana":      [0.1583,0.1594,0.1666,0.1914,0.1699,0.1611,0.2177,0.2094,0.1776,0.2568,0.2582],
+  "Monday.com": [0.5731,0.6010,0.6284,0.6796,0.6823,0.6605,0.6937,0.6440,0.6123,0.6181,0.6391],
+};
+
+/* ── Derived aggregates ── */
+function periodTotals() {
+  return BRANDS.map(b => {
+    const spend       = MONTHLY_SPEND[b].reduce((s, v) => s + v, 0);
+    const paidClicks  = TOTAL_CLICKS[b].reduce((s, v, i) => s + v * PAID_SHARE[b][i], 0);
+    const cpc         = spend / paidClicks;
+    return { brand: b, spend, paidClicks: Math.round(paidClicks), cpc };
+  });
 }
 
 /* ── Formatters ── */
@@ -213,18 +229,20 @@ const LEGEND_H = { orientation: 'h', y: -0.22, font: { size: 11 }, bgcolor: 'tra
 
 /* ── Summary ── */
 function renderSummary() {
-  const totalSpend  = RAW_DATA.reduce((s, d) => s + d.spend,  0);
-  const totalClicks = RAW_DATA.reduce((s, d) => s + d.clicks, 0);
+  const totals = periodTotals();
+  const totalSpend  = totals.reduce((s, t) => s + t.spend, 0);
+  const totalClicks = totals.reduce((s, t) => s + t.paidClicks, 0);
+
   document.getElementById('stat-spend').textContent  = fmtMoney(totalSpend);
   document.getElementById('stat-clicks').textContent = fmtNum(totalClicks);
   document.getElementById('stat-cpc').textContent    = '$' + (totalSpend / totalClicks).toFixed(2);
 
-  const asc = [...RAW_DATA].sort((a, b) => a.spend - b.spend);
+  const asc = [...totals].sort((a, b) => a.spend - b.spend);
   Plotly.newPlot('chart-spend', [{
     type: 'bar', orientation: 'h',
-    x: asc.map(d => d.spend),
-    y: asc.map(d => NAME_MAP[d.key]),
-    marker: { color: asc.map(d => COLORS[NAME_MAP[d.key]]) },
+    x: asc.map(t => t.spend),
+    y: asc.map(t => t.brand),
+    marker: { color: asc.map(t => COLORS[t.brand]) },
     hovertemplate: '<b>%{y}</b><br>$%{x:,.0f}<extra></extra>',
   }], {
     ...BASE,
@@ -234,20 +252,23 @@ function renderSummary() {
     yaxis: axis({ automargin: true }),
   }, CFG);
 
-  const desc = [...RAW_DATA].sort((a, b) => b.spend - a.spend);
+  const desc = [...totals].sort((a, b) => b.spend - a.spend);
   document.getElementById('brand-table').innerHTML = `
     <table>
       <thead><tr>
-        <th>Brand</th><th class="r">Paid Clicks</th>
-        <th class="r">CPC</th><th class="r">PPC Spend</th><th class="r">Share</th>
+        <th>Brand</th>
+        <th class="r">Paid Clicks</th>
+        <th class="r">Blended CPC</th>
+        <th class="r">PPC Spend</th>
+        <th class="r">Spend Share</th>
       </tr></thead>
       <tbody>
-        ${desc.map(d => `<tr class="${d.key.includes('atlassian') ? 'atl' : ''}">
-          <td>${NAME_MAP[d.key]}</td>
-          <td class="r">${fmtNum(d.clicks)}</td>
-          <td class="r">$${d.cpc.toFixed(2)}</td>
-          <td class="r">${fmtMoney(d.spend)}</td>
-          <td class="r" style="color:#6e7681">${((d.spend / totalSpend) * 100).toFixed(1)}%</td>
+        ${desc.map(t => `<tr class="${['Confluence','Jira'].includes(t.brand) ? 'atl' : ''}">
+          <td>${t.brand}</td>
+          <td class="r">${fmtNum(t.paidClicks)}</td>
+          <td class="r">$${t.cpc.toFixed(2)}</td>
+          <td class="r">${fmtMoney(t.spend)}</td>
+          <td class="r" style="color:#6e7681">${((t.spend / totalSpend) * 100).toFixed(1)}%</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
@@ -255,13 +276,15 @@ function renderSummary() {
 
 /* ── Clicks & CPC ── */
 function renderClicksCPC() {
-  const byClicks = [...RAW_DATA].sort((a, b) => a.clicks - b.clicks);
+  const totals = periodTotals();
+
+  const byClicks = [...totals].sort((a, b) => a.paidClicks - b.paidClicks);
   Plotly.newPlot('chart-clicks', [{
     type: 'bar', orientation: 'h',
-    x: byClicks.map(d => d.clicks),
-    y: byClicks.map(d => NAME_MAP[d.key]),
-    marker: { color: byClicks.map(d => COLORS[NAME_MAP[d.key]]) },
-    hovertemplate: '<b>%{y}</b><br>%{x:,.0f} clicks<extra></extra>',
+    x: byClicks.map(t => t.paidClicks),
+    y: byClicks.map(t => t.brand),
+    marker: { color: byClicks.map(t => COLORS[t.brand]) },
+    hovertemplate: '<b>%{y}</b><br>%{x:,.0f} paid clicks<extra></extra>',
   }], {
     ...BASE,
     height: 270,
@@ -270,12 +293,12 @@ function renderClicksCPC() {
     yaxis: axis({ automargin: true }),
   }, CFG);
 
-  const byCPC = [...RAW_DATA].sort((a, b) => a.cpc - b.cpc);
+  const byCPC = [...totals].sort((a, b) => a.cpc - b.cpc);
   Plotly.newPlot('chart-cpc', [{
     type: 'bar', orientation: 'h',
-    x: byCPC.map(d => d.cpc),
-    y: byCPC.map(d => NAME_MAP[d.key]),
-    marker: { color: byCPC.map(d => COLORS[NAME_MAP[d.key]]) },
+    x: byCPC.map(t => t.cpc),
+    y: byCPC.map(t => t.brand),
+    marker: { color: byCPC.map(t => COLORS[t.brand]) },
     hovertemplate: '<b>%{y}</b><br>$%{x:.2f} CPC<extra></extra>',
   }], {
     ...BASE,
@@ -288,14 +311,13 @@ function renderClicksCPC() {
 
 /* ── Spend Share Line ── */
 function renderSpendShare() {
-  const traces = KEYS.map(k => ({
+  const traces = BRANDS.map(b => ({
     type: 'scatter', mode: 'lines+markers',
-    name: NAME_MAP[k],
-    x: MONTHS,
-    y: SPEND_SHARE_PCT[k],
-    line:   { color: COLORS[NAME_MAP[k]], width: 2 },
+    name: b,
+    x: MONTHS, y: SPEND_SHARE_PCT[b],
+    line:   { color: COLORS[b], width: 2 },
     marker: { size: 5 },
-    hovertemplate: NAME_MAP[k] + ': %{y:.1f}%<extra></extra>',
+    hovertemplate: b + ': %{y:.1f}%<extra></extra>',
   }));
 
   Plotly.newPlot('chart-line', traces, {
@@ -311,11 +333,11 @@ function renderSpendShare() {
 
 /* ── Monthly Share ── */
 function renderMonthly() {
-  const shareSeries = KEYS.map(k => ({
-    type: 'bar', name: NAME_MAP[k],
-    x: MONTHS, y: SPEND_SHARE_PCT[k],
-    marker: { color: COLORS[NAME_MAP[k]] },
-    hovertemplate: NAME_MAP[k] + ': %{y:.1f}%<extra></extra>',
+  const shareSeries = BRANDS.map(b => ({
+    type: 'bar', name: b,
+    x: MONTHS, y: SPEND_SHARE_PCT[b],
+    marker: { color: COLORS[b] },
+    hovertemplate: b + ': %{y:.1f}%<extra></extra>',
   }));
 
   Plotly.newPlot('chart-mshare', shareSeries, {
@@ -329,12 +351,11 @@ function renderMonthly() {
     legend: LEGEND_H,
   }, CFG);
 
-  const monthly = estimateMonthlySpend();
-  const spendSeries = KEYS.map(k => ({
-    type: 'bar', name: NAME_MAP[k],
-    x: MONTHS, y: monthly[k],
-    marker: { color: COLORS[NAME_MAP[k]] },
-    hovertemplate: NAME_MAP[k] + ': $%{y:,.0f}<extra></extra>',
+  const spendSeries = BRANDS.map(b => ({
+    type: 'bar', name: b,
+    x: MONTHS, y: MONTHLY_SPEND[b],
+    marker: { color: COLORS[b] },
+    hovertemplate: b + ': $%{y:,.0f}<extra></extra>',
   }));
 
   Plotly.newPlot('chart-mspend', spendSeries, {
