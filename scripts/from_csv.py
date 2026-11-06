@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the single-file dashboard from local spend and paid-click CSVs."""
+"""Regenerate the static PPC dashboard from the Similarweb exports in data/source/."""
 from __future__ import annotations
 
 import csv
@@ -8,13 +8,15 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEND_CSV = ROOT / "data" / "source" / "ppc-spend.csv"
-CLICKS_CSV = ROOT / "data" / "source" / "paid-clicks.csv"
+SOURCE = ROOT / "data" / "source"
+SPEND_CSV = SOURCE / "PPC Spend.csv"
+CLICKS_CSV = SOURCE / "Paid Clicks.csv"
 OUT = ROOT / "index.html"
 
 BRAND_ORDER = [
-    "Confluence",
     "Jira",
+    "Confluence",
+    "Atlassian",
     "Wrike",
     "Smartsheet",
     "Notion",
@@ -24,131 +26,106 @@ BRAND_ORDER = [
     "Linear",
 ]
 
-DOMAIN_TO_BRAND = {
-    "Confluence": "Confluence",
-    "confluence.atlassian.com": "Confluence",
-    "atlassian.com/software/confluence": "Confluence",
-    "Jira": "Jira",
-    "jira.atlassian.com": "Jira",
+COLUMNS = {
+    "atlassian.com": "Atlassian",
     "atlassian.com/software/jira": "Jira",
-    "Wrike": "Wrike",
+    "atlassian.com/software/confluence": "Confluence",
     "wrike.com": "Wrike",
-    "Smartsheet": "Smartsheet",
     "smartsheet.com": "Smartsheet",
-    "Notion": "Notion",
-    "notion.so": "Notion",
-    "ClickUp": "ClickUp",
+    "notion.com": "Notion",
     "clickup.com": "ClickUp",
-    "Asana": "Asana",
     "asana.com": "Asana",
-    "Monday.com": "Monday.com",
     "monday.com": "Monday.com",
-    "Linear": "Linear",
     "linear.app": "Linear",
 }
 
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-def num(value: str) -> float:
+
+def number(value: str | None) -> float:
     value = (value or "").strip()
-    if not value or value.lower() == "null":
+    if not value or value.lower() in {"null", "nan"}:
         return 0.0
     return float(value)
 
 
-def read_metric(path: Path) -> tuple[list[str], dict[str, list[float]]]:
-    with path.open(newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.reader(f))
+def read_metric(path: Path, columns: dict[str, str]) -> tuple[list[str], dict[str, list[float]]]:
+    with path.open(newline="", encoding="utf-8-sig") as source:
+        reader = csv.DictReader(source)
+        if not reader.fieldnames:
+            raise SystemExit(f"Missing header row in {path}")
 
-    header = rows[0]
-    months = [row[0] for row in rows[1:]]
-    out = {brand: [0.0 for _ in months] for brand in BRAND_ORDER}
+        missing = sorted(set(columns) - set(reader.fieldnames))
+        if missing:
+            raise SystemExit(f"Missing columns in {path}: {', '.join(missing)}")
 
-    for col_idx, domain in enumerate(header[1:], start=1):
-        brand = DOMAIN_TO_BRAND.get(domain)
-        if not brand:
-            continue
-        for row_idx, row in enumerate(rows[1:]):
-            out[brand][row_idx] += num(row[col_idx] if col_idx < len(row) else "")
+        months: list[str] = []
+        values = {name: [] for name in columns.values()}
+        for row in reader:
+            month = (row.get(reader.fieldnames[0]) or "").strip()
+            if not month:
+                continue
+            months.append(month)
+            for column, name in columns.items():
+                values[name].append(number(row.get(column)))
 
-    return months, out
+    return months, values
 
 
-def js_array(values) -> str:
+def js_array(values: list[float] | list[str]) -> str:
     return json.dumps(values, separators=(",", ":"))
 
 
-def js_obj(obj: dict[str, list[float]], digits: int = 2) -> str:
+def js_object(values: dict[str, list[float]], digits: int) -> str:
     lines = ["{"]
     for brand in BRAND_ORDER:
-        values = [round(v, digits) for v in obj[brand]]
-        lines.append(f'  "{brand}": {js_array(values)},')
-    lines.append("}")
+        rounded = [round(value, digits) for value in values[brand]]
+        lines.append(f'      {json.dumps(brand)}: {js_array(rounded)},')
+    lines.append("    }")
     return "\n".join(lines)
 
 
-def fmt_month(label: str) -> str:
+def format_month(label: str) -> str:
     year, month = label.split("-")
-    names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    return f"{names[int(month) - 1]} '{year[-2:]}"
+    return f"{MONTH_NAMES[int(month) - 1]} '{year[-2:]}"
 
 
-def fmt_period(label: str) -> str:
+def format_period(label: str) -> str:
     year, month = label.split("-")
-    names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    return f"{names[int(month) - 1]} {year}"
+    return f"{MONTH_NAMES[int(month) - 1]} {year}"
 
 
 def replace_const(text: str, name: str, value: str) -> str:
     pattern = rf"const {name} = .*?;\n"
-    return re.sub(pattern, f"const {name} = {value};\n", text, flags=re.S)
+    replacement = f"const {name} = {value};\n"
+    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+    if count != 1:
+        raise SystemExit(f"Could not find const {name} in {OUT}")
+    return updated
 
 
 def main() -> None:
-    spend_months, spend = read_metric(SPEND_CSV)
-    click_months, clicks = read_metric(CLICKS_CSV)
+    spend_months, spend = read_metric(SPEND_CSV, COLUMNS)
+    click_months, clicks = read_metric(CLICKS_CSV, COLUMNS)
     if spend_months != click_months:
         raise SystemExit(f"Month mismatch:\nspend={spend_months}\nclicks={click_months}")
 
-    monthly_totals = [sum(spend[brand][i] for brand in BRAND_ORDER) for i in range(len(spend_months))]
-    spend_share = {
-        brand: [
-            round((spend[brand][i] / monthly_totals[i]) * 100, 1) if monthly_totals[i] else 0.0
-            for i in range(len(spend_months))
-        ]
-        for brand in BRAND_ORDER
-    }
+    html = OUT.read_text(encoding="utf-8")
+    period = f"{format_period(spend_months[0])} – {format_period(spend_months[-1])}"
+    html = replace_const(html, "PERIOD_LABEL", json.dumps(period, ensure_ascii=False))
+    html = replace_const(html, "MONTHS", js_array([format_month(month) for month in spend_months]))
+    html = replace_const(html, "SPEND_USD", js_object(spend, digits=0))
+    html = replace_const(html, "PAID_CLICKS", js_object(clicks, digits=0))
+    note_period = period.replace("–", "&ndash;")
+    html, notes = re.subn(r'(<p class="chart-note">).*?( &middot; 100% stacked)', rf"\g<1>{note_period}\g<2>", html)
+    if notes == 0:
+        raise SystemExit(f"Could not find chart notes in {OUT}")
+    OUT.write_text(html, encoding="utf-8")
 
-    html = OUT.read_text()
-    period = f"{fmt_period(spend_months[0])} – {fmt_period(spend_months[-1])}"
-    html = re.sub(r"(Paid search competitive analysis &middot; Worldwide &middot; ).*?(</p>)", rf"\1{period}\2", html)
-    html = re.sub(r"Period total .*? &middot;", f"Period total {period} &middot;", html)
-    html = html.replace("Period total &middot; hover bars", f"Period total {period} &middot; hover bars")
-
-    html = replace_const(html, "BRANDS", js_array(BRAND_ORDER))
-    html = replace_const(html, "MONTHS", js_array([fmt_month(m) for m in spend_months]))
-    html = replace_const(html, "MONTHLY_SPEND", js_obj(spend, digits=2))
-    html = replace_const(html, "SPEND_SHARE_PCT", js_obj(spend_share, digits=1))
-    html = replace_const(html, "TOTAL_CLICKS", js_obj(clicks, digits=2))
-    html = re.sub(
-        r"const PAID_SHARE = \{.*?\};\n\n",
-        "",
-        html,
-        flags=re.S,
-    )
-    html = re.sub(
-        r"const paidClicks = TOTAL_CLICKS\[b\]\.reduce\(\(s, v, i\) => s \+ v \* PAID_SHARE\[b\]\[i\], 0\);",
-        "const paidClicks = TOTAL_CLICKS[b].reduce((s, v) => s + v, 0);",
-        html,
-    )
-
-    OUT.write_text(html)
     print(f"Wrote {OUT}")
     print(f"Months: {spend_months[0]} to {spend_months[-1]}")
     for brand in BRAND_ORDER:
-        brand_spend = sum(spend[brand])
-        brand_clicks = sum(clicks[brand])
-        cpc = brand_spend / brand_clicks if brand_clicks else 0
-        print(f"{brand:12} spend=${brand_spend:,.0f} paid_clicks={brand_clicks:,.0f} cpc=${cpc:.2f}")
+        print(f"{brand:12} spend={sum(spend[brand]):>14,.0f}  latest_clicks={clicks[brand][-1]:>12,.0f}")
 
 
 if __name__ == "__main__":
